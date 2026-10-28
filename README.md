@@ -1,5 +1,3 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
-
 # Terminal Koi Pond
 
 [Dao Ho's koi pond](https://github.com/Dao-Ho/portfolio), swimming in your terminal.
@@ -8,6 +6,16 @@ behavior run against an ANSI surface. The default renderer uses `▀`: its
 foreground colors the upper half and its background colors the lower half.
 That gives two independent pixels per character, doubling vertical detail.
 With a typical 1:2 terminal font, those pixels are square.
+
+## Screenshots
+
+### Half blocks
+
+![Half-block renderer showing koi swimming in a terminal](assets/screenshots/half-blocks.png)
+
+### ASCII
+
+![ASCII renderer showing the same koi pond as colored text tiles](assets/screenshots/ascii.png)
 
 ## Run
 
