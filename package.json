@@ -1,0 +1,12 @@
+{
+  "name": "terminal-koi-pond",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dao Ho's koi pond, adapted to a real terminal.",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": {
+    "start": "node src/cli.ts",
+    "test": "node --test test/*.test.ts"
+  }
+}
