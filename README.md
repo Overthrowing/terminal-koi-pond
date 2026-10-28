@@ -7,15 +7,11 @@ foreground colors the upper half and its background colors the lower half.
 That gives two independent pixels per character, doubling vertical detail.
 With a typical 1:2 terminal font, those pixels are square.
 
-## Screenshots
+## Preview
 
-### Half blocks
-
-![Half-block renderer showing koi swimming in a terminal](assets/screenshots/half-blocks.png)
-
-### ASCII
-
-![ASCII renderer showing the same koi pond as colored text tiles](assets/screenshots/ascii.png)
+| Half blocks | ASCII |
+| :---: | :---: |
+| ![Half-block rendering of swimming koi and feeding ripples](assets/screenshots/half-blocks.gif) | ![The same animation rendered as colored ASCII tiles](assets/screenshots/ascii.gif) |
 
 ## Run
 
