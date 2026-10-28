@@ -1,5 +1,6 @@
 export type InputEvent =
     | { type: "key"; key: string }
+    | { type: "geometry"; kind: "cell" | "pixels" | "characters"; height: number; width: number }
     | { type: "mouse"; col: number; row: number; feed: boolean };
 
 /** Decode streaming input, including mouse reports split across reads. */
@@ -18,6 +19,14 @@ export class InputParser {
         const events: InputEvent[] = [];
         while (this.pending.length) {
             if (this.pending.startsWith("\x1b")) {
+                // XTWINOPS replies are input from the terminal, never keypresses.
+                const geometry = /^\x1b\[(4|6|8);(\d+);(\d+)t/.exec(this.pending);
+                if (geometry) {
+                    events.push({ type: "geometry", kind: geometry[1] === "6" ? "cell" : geometry[1] === "4" ? "pixels" : "characters",
+                        height: Number(geometry[2]), width: Number(geometry[3]) });
+                    this.pending = this.pending.slice(geometry[0].length);
+                    continue;
+                }
                 const mouse = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])/.exec(this.pending);
                 if (mouse) {
                     const button = Number(mouse[1]);

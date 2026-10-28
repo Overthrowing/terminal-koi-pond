@@ -3,6 +3,8 @@ import { CellSurface, type RenderMode } from "./surface.ts";
 export type PondSettings = {
     mode: RenderMode;
     cellAspect: number;
+    autoAspect: boolean;
+    aspectStatus?: "detecting" | "detected" | "fallback";
     fps: number;
     fish: number;
     light: boolean;
@@ -21,15 +23,20 @@ const entries = [
 ] as const;
 const advancedEntries = [
     { key: "cellAspect", label: "Cell aspect ratio", hint: "Cell height / width. Adjust by 0.05." },
+    { key: "autoAspect", label: "Aspect detection", hint: "Auto reads terminal dimensions; manual keeps your value." },
     { key: "back", label: "Back", hint: "Return to the main settings menu." },
 ] as const;
-type SettingKey = keyof PondSettings;
+type SettingKey = Exclude<keyof PondSettings, "aspectStatus">;
 
 export function adjustSetting(settings: PondSettings, key: SettingKey, direction: number, color: boolean): PondSettings {
     const next = { ...settings };
     switch (key) {
         case "mode": if (color) next.mode = settings.mode === "blocks" ? "ascii" : "blocks"; break;
-        case "cellAspect": next.cellAspect = Math.max(1, Math.min(3, Math.round((settings.cellAspect + direction * 0.05) * 100) / 100)); break;
+        case "cellAspect":
+            next.cellAspect = Math.max(1, Math.min(3, Math.round((settings.cellAspect + direction * 0.05) * 100) / 100));
+            next.autoAspect = false;
+            break;
+        case "autoAspect": next.autoAspect = !settings.autoAspect; break;
         case "fps": next.fps = Math.max(1, Math.min(60, settings.fps + direction)); break;
         case "fish": next.fish = Math.max(1, Math.min(20, settings.fish + direction)); break;
         case "light": next.light = !settings.light; break;
@@ -89,6 +96,7 @@ export class SettingsMenu {
             switch (key) {
                 case "mode": return settings.mode === "blocks" ? "Half blocks" : color ? "ASCII" : "ASCII (no color)";
                 case "cellAspect": return settings.cellAspect.toFixed(2);
+                case "autoAspect": return settings.autoAspect ? `Auto (${settings.aspectStatus ?? "fallback"})` : "Manual";
                 case "fps": return `${settings.fps} fps`;
                 case "fish": return String(settings.fish);
                 case "light": return settings.light ? "Light" : "Dark";

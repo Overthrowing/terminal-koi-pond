@@ -26,13 +26,20 @@ Or run `node src/cli.ts` directly. For the full colors, use a terminal with
 Zooming out your terminal font gives the fish more detail.
 
 The simulation uses physical proportions rather than treating characters as
-square. If your font cells have a different shape, set `--cell-aspect` to
-**cell height ÷ cell width** (default: `2`). For example, a 9 × 16 pixel font
-uses about `1.78`. This corrects fish shapes and circular ripples in either
-renderer. Terminals control their own fonts; the app cannot force square cells.
+square. Cell aspect ratio is detected automatically on startup and resize,
+using the terminal's reported cell dimensions or text-area dimensions.
+This uses [xterm-compatible size queries](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html);
+some terminals or multiplexers do not answer them. Startup continues immediately
+with a fallback of `2`, retaining the last detected ratio if later queries fail.
+
+For a manual override, set `--cell-aspect` to **cell height ÷ cell width**.
+For example, a 9 × 16 pixel font uses about `1.78`. This corrects fish shapes
+and circular ripples in either renderer. Terminals control their own fonts;
+the app cannot force square cells.
 
 ```sh
 npm start -- --cell-aspect 1.78
+npm start -- --cell-aspect auto  # default
 npm start -- --renderer ascii  # original text-tile style
 ```
 
@@ -53,7 +60,10 @@ Press **M** to open the settings panel. **Up/Down** selects an option;
 Changes apply immediately, so you can tune the aspect ratio while watching
 the fish. Settings include renderer mode, frame rate, koi count, theme, mouse
 input, and the controls strip. Open **Advanced settings** for cell aspect
-ratio (steps of 0.05); **Esc** returns to the main menu.
+ratio (steps of 0.05) and **Aspect detection** (Auto / Manual).
+Changing the ratio switches to Manual; switching back to Auto queries the
+terminal again. Auto shows whether the ratio was detected or uses a fallback.
+**Esc** returns to the main menu.
 Switching renderer or aspect ratio keeps the current pond and food.
 Settings apply for the current run; command-line flags set the startup values.
 Half blocks are unavailable when color is disabled.

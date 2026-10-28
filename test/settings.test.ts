@@ -4,7 +4,7 @@ import { SettingsMenu, adjustSetting, type PondSettings } from "../src/settings.
 import { CellSurface } from "../src/surface.ts";
 import { InputParser } from "../src/input.ts";
 
-const initial: PondSettings = { mode: "blocks", cellAspect: 2, fps: 24, fish: 3, light: false, mouse: true, showHelp: true };
+const initial: PondSettings = { mode: "blocks", cellAspect: 2, autoAspect: true, fps: 24, fish: 3, light: false, mouse: true, showHelp: true };
 
 test("menu navigation adjusts the selected option and contains pond shortcuts", () => {
     const menu = new SettingsMenu();
@@ -29,6 +29,8 @@ test("settings enforce bounds, preserve precision, and respect no-color", () => 
     assert.equal(adjustSetting(initial, "mode", 1, true).mode, "ascii");
     assert.equal(adjustSetting({ ...initial, mode: "ascii" }, "mode", 1, false).mode, "ascii");
     assert.equal(adjustSetting(initial, "cellAspect", -1, true).cellAspect, 1.95);
+    assert.equal(adjustSetting(initial, "cellAspect", -1, true).autoAspect, false);
+    assert.equal(adjustSetting(initial, "autoAspect", 1, true).autoAspect, false);
     for (const [key, low, high] of [["cellAspect", 1, 3], ["fps", 1, 60], ["fish", 1, 20]] as const) {
         assert.equal(adjustSetting({ ...initial, [key]: low }, key, -1, true)[key], low);
         assert.equal(adjustSetting({ ...initial, [key]: high }, key, 1, true)[key], high);
@@ -62,6 +64,7 @@ test("settings draw in both modes, scroll in small windows, and survive resizing
         surface.clear();
         menu.draw(surface, { ...initial, mode }, true);
         assert.match(surface.plain(), /Cell aspect ratio/);
+        menu.handleKey("down");
         menu.handleKey("down");
         menu.handleKey("\r");
         assert.equal(menu.page, "main");

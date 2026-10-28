@@ -5,6 +5,7 @@ import { KoiRenderer } from "./renderer.ts";
 import { CellSurface, type RenderMode } from "./surface.ts";
 import { InputParser } from "./input.ts";
 import { SettingsMenu, adjustSetting, type PondSettings } from "./settings.ts";
+import { AspectDetector } from "./aspect.ts";
 
 const help = `Terminal Koi Pond
 
@@ -23,7 +24,7 @@ Options:
   --fps N          Frames per second, 1–60 (default: 24)
   --fish N         Number of koi, 1–20 (default: automatic)
   --renderer MODE  blocks (default) or ascii (original text tiles)
-  --cell-aspect N  Cell height / width (default: 2; e.g. 1.8)
+  --cell-aspect N  Cell height / width, or auto (default: auto)
   --light          Start with the paper-colored theme
   --no-mouse       Disable terminal mouse tracking
   --no-color       Use plain characters without color
@@ -62,9 +63,10 @@ async function main() {
     if (mode === "blocks" && (!color || values.snapshot)) {
         throw new Error("The blocks renderer needs color; use --renderer ascii with --no-color or --snapshot.");
     }
-    let cellAspect = Number(values["cell-aspect"] ?? 2);
+    let autoAspect = (values["cell-aspect"] ?? "auto") === "auto";
+    let cellAspect = autoAspect ? 2 : Number(values["cell-aspect"]);
     if (!Number.isFinite(cellAspect) || cellAspect < 1 || cellAspect > 3) {
-        throw new Error("--cell-aspect must be a number from 1 to 3.");
+        throw new Error("--cell-aspect must be auto or a number from 1 to 3.");
     }
     let mouse = !values["no-mouse"];
     let light = !!values.light;
@@ -80,13 +82,17 @@ async function main() {
     let cellHeight = surface.terminalCellHeight;
     let renderer = new KoiRenderer(surface);
     const menu = new SettingsMenu();
+    const aspectDetector = new AspectDetector();
     renderer.setTheme(light);
 
     function settings(): PondSettings {
-        return { mode: mode as RenderMode, cellAspect, fps, fish: world.koi.length, light, mouse, showHelp };
+        return { mode: mode as RenderMode, cellAspect, autoAspect, aspectStatus: aspectDetector.status(),
+            fps, fish: world.koi.length, light, mouse, showHelp };
     }
 
     function applySettings(next: PondSettings) {
+        const startDetection = next.autoAspect && !autoAspect;
+        autoAspect = next.autoAspect;
         if (next.mode !== mode || next.cellAspect !== cellAspect) {
             mode = next.mode;
             cellAspect = next.cellAspect;
@@ -114,6 +120,7 @@ async function main() {
             world.pointer.active = false;
         }
         ({ fps, light, mouse, showHelp } = next);
+        if (startDetection) requestAspect();
     }
 
     function newPond() {
@@ -161,6 +168,15 @@ async function main() {
         target.col = clamp(target.col, 0, cols - 1);
         target.row = clamp(target.row, 0, Math.max(0, rows - 3));
         renderer.resize(w, rows * cellHeight);
+    }
+
+    function requestAspect() {
+        if (autoAspect && !values.snapshot) process.stdout.write(aspectDetector.begin());
+    }
+
+    function onResize() {
+        resize();
+        requestAspect();
     }
 
     function point(col: number, row: number) {
@@ -226,7 +242,7 @@ async function main() {
         running = false;
         if (timer) clearTimeout(timer);
         if (escapeTimer) clearTimeout(escapeTimer);
-        process.stdout.off("resize", resize);
+        process.stdout.off("resize", onResize);
         process.stdin.off("data", onInput);
         process.stdin.setRawMode(wasRaw);
         process.stdin.pause();
@@ -241,6 +257,13 @@ async function main() {
 
     function handleInput(events: ReturnType<InputParser["push"]>) {
         for (const event of events) {
+            if (event.type === "geometry") {
+                if (autoAspect) {
+                    const aspect = aspectDetector.receive(event, cols, rows);
+                    if (aspect !== undefined && aspect !== cellAspect) applySettings({ ...settings(), cellAspect: aspect });
+                }
+                continue;
+            }
             if (event.type === "mouse") {
                 if (menu.open || !mouse) continue;
                 if (event.row >= rows - 2) continue;
@@ -286,12 +309,13 @@ async function main() {
     process.once("SIGINT", cleanup);
     process.once("SIGTERM", cleanup);
     process.once("SIGHUP", cleanup);
-    process.stdout.on("resize", resize);
+    process.stdout.on("resize", onResize);
     process.stdin.setEncoding("utf8");
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.on("data", onInput);
     process.stdout.write(enter);
+    requestAspect();
     let last = performance.now();
     function frame() {
         timer = undefined;
